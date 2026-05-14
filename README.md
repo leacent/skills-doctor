@@ -1,25 +1,57 @@
 # skills-doctor
 
-`skills-doctor` is a local checker for AI agent skills. It helps an AI agent inspect local skill directories, identify quality and safety issues, and generate a best-practice HTML report. It supports Python 3.9+.
+`skills-doctor` is a local checker and installable skill for AI agent skills. It helps an AI agent inspect local skill directories, identify quality and safety issues, and generate a best-practice HTML report. It supports Python 3.9+.
 
-It does not modify skills, apply patches, install skills, or upload local content.
+The scanner does not modify inspected skills, apply patches, or upload local content. The installer only copies the bundled `skills-doctor` skill and its review references into your local agent skills directory.
 
 ## What It Checks
 
 - Skill discovery across common local roots such as `.codex/skills`, `.claude/skills`, `~/.codex/skills`, and `~/.claude/skills`.
 - `SKILL.md` structure and frontmatter quality.
-- Trigger description precision and over-broad descriptions.
+- Trigger description precision and over-broad descriptions through the installed review checklist.
 - Estimated token cost hotspots across Index, Load, and Runtime layers.
 - Progressive disclosure issues.
 - Long descriptions, large resources, and high runtime context risk.
 - Dangerous command patterns and sensitive values.
 - Hardcoded local paths.
 - Empty resource directories.
-- Potential trigger conflicts between skills.
+- Potential trigger conflicts between skills through agent review of scanner inventory.
 
-## Install From Source
+## Install
+
+Install the CLI directly from GitHub with `pipx`, then install the bundled skill:
 
 ```bash
+pipx install "git+https://github.com/leacent/skills-doctor.git"
+skills-doctor install-skill --target all
+```
+
+Or use `uv`:
+
+```bash
+uv tool install "git+https://github.com/leacent/skills-doctor.git"
+skills-doctor install-skill --target all
+```
+
+This installs `skills-doctor` into:
+
+- `~/.claude/skills/skills-doctor/SKILL.md`
+- `~/.codex/skills/skills-doctor/SKILL.md`
+- `~/.cursor/skills/skills-doctor/SKILL.md`
+
+Install only one target if needed:
+
+```bash
+skills-doctor install-skill --target claude
+```
+
+Existing files are not overwritten unless you pass `--force`. After installation, ask your agent to run `skills doctor`, `audit skills`, or `scan skill directories`.
+
+For local development:
+
+```bash
+git clone https://github.com/leacent/skills-doctor.git
+cd skills-doctor
 python3 -m pip install -e .
 ```
 
@@ -55,13 +87,14 @@ skills-doctor scan ~/.codex/skills --format markdown
 skills-doctor scan [paths...] --format json|markdown|html
 skills-doctor report [paths...] --output skills-doctor-report.html
 skills-doctor review [paths...] --format markdown|json|html
+skills-doctor install-skill --target claude|codex|cursor|all
 ```
 
 When no path is provided, `skills-doctor` scans existing common roots only. It does not search the whole home directory.
 
 ## Report Boundary
 
-The HTML report contains evidence, impact, priority, confidence, and suggested next steps. Follow-up actions such as rewriting descriptions, splitting references, moving files, disabling skills, or merging duplicates are left to the user.
+The HTML report contains deterministic scan evidence, impact, priority, confidence, and suggested next steps. The installed skill includes prompt-based review references for qualitative judgment. Follow-up actions such as rewriting descriptions, splitting references, moving files, disabling skills, or merging duplicates are left to the user.
 
 ## Token Estimate Model
 
@@ -76,7 +109,7 @@ The HTML report groups findings by Index, Load, and Runtime layers so users can 
 
 ## Skill Form
 
-The installable skill definition lives at [`skill/SKILL.md`](skill/SKILL.md). Its trigger is intentionally narrow: use it for `doctor`, `skills check`, `audit skills`, `scan skill directories`, and local skills report requests. Do not use it for creating, installing, finding, or learning how to write skills.
+The installable skill bundle lives under [`skill/`](skill/) and is bundled into the Python package for `install-skill`. `SKILL.md` keeps the workflow short, while `skill/references/` contains the prompt-based review checklist, anti-patterns, and report template. Its trigger is intentionally narrow: use it for `doctor`, `skills check`, `audit skills`, `scan skill directories`, and local skills report requests. Do not use it for creating, installing, finding, or learning how to write skills.
 
 ## Development
 

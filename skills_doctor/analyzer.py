@@ -5,10 +5,7 @@ from pathlib import Path
 
 from .defaults import (
     DANGEROUS_PATTERNS,
-    OVERBROAD_PHRASES,
     SECRET_PATTERNS,
-    STOPWORDS,
-    WEAK_DESCRIPTION_PHRASES,
 )
 from .models import Finding, ScanResult, SkillRecord
 
@@ -19,8 +16,6 @@ def analyze_scan(result: ScanResult) -> ScanResult:
         skill.findings.extend(_analyze_skill(skill))
         all_findings.extend(skill.findings)
 
-    conflict_findings = _analyze_conflicts(result.skills)
-    all_findings.extend(conflict_findings)
     result.findings = sorted(all_findings, key=lambda finding: finding.sort_key())
     result.summary = _build_summary(result)
     return result
@@ -104,29 +99,6 @@ def _analyze_skill(skill: SkillRecord) -> list[Finding]:
                 "Short descriptions usually lack enough trigger boundaries.",
                 "Include the task, trigger intent, artifact type, and non-use boundary.",
             ))
-        if any(phrase in desc_lower for phrase in WEAK_DESCRIPTION_PHRASES):
-            findings.append(_finding(
-                "P2",
-                "trigger",
-                "index",
-                "Description uses weak trigger language",
-                skill.skill_md_path,
-                _matched_phrase(desc_lower, WEAK_DESCRIPTION_PHRASES),
-                "Weak language can cause over-triggering or under-triggering.",
-                "Replace generic phrasing with concrete user intents and artifacts.",
-            ))
-        if any(phrase in desc_lower for phrase in OVERBROAD_PHRASES):
-            findings.append(_finding(
-                "P2",
-                "trigger",
-                "index",
-                "Description appears over-broad",
-                skill.skill_md_path,
-                _matched_phrase(desc_lower, OVERBROAD_PHRASES),
-                "Over-broad skills distract the agent and can conflict with specialized skills.",
-                "Add clear positive and negative trigger boundaries.",
-            ))
-
     if skill.words > 5000:
         findings.append(_finding(
             "P1",
@@ -289,43 +261,6 @@ def _analyze_skill(skill: SkillRecord) -> list[Finding]:
     return findings
 
 
-def _analyze_conflicts(skills: list[SkillRecord]) -> list[Finding]:
-    findings: list[Finding] = []
-    token_sets = {skill.path: _trigger_tokens(skill.description) for skill in skills if skill.description}
-    pairs_checked = 0
-
-    for index, left in enumerate(skills):
-        for right in skills[index + 1 :]:
-            if not left.description or not right.description:
-                continue
-            left_tokens = token_sets.get(left.path, set())
-            right_tokens = token_sets.get(right.path, set())
-            if not left_tokens or not right_tokens:
-                continue
-            score = len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
-            if score < 0.55:
-                continue
-            pairs_checked += 1
-            if pairs_checked > 25:
-                return findings
-            evidence = f"{left.display_name} and {right.display_name} share trigger tokens: {', '.join(sorted(left_tokens & right_tokens)[:8])}"
-            finding = Finding(
-                priority="P2",
-                category="conflict",
-                layer="index",
-                title="Potential trigger overlap",
-                path=f"{left.skill_md_path} <> {right.skill_md_path}",
-                evidence=evidence,
-                impact="Overlapping trigger descriptions can cause multiple skills to activate or distract the agent.",
-                recommendation="Narrow one or both descriptions with explicit positive and negative trigger boundaries.",
-                confidence="medium",
-            )
-            left.findings.append(finding)
-            right.findings.append(finding)
-            findings.append(finding)
-    return findings
-
-
 def _build_summary(result: ScanResult) -> dict[str, int]:
     priorities = {"P1": 0, "P2": 0, "P3": 0}
     for finding in result.findings:
@@ -370,18 +305,6 @@ def _finding(
         confidence=confidence,
         line=line,
     )
-
-
-def _matched_phrase(value: str, phrases: tuple[str, ...]) -> str:
-    for phrase in phrases:
-        if phrase in value:
-            return f"matched phrase: {phrase}"
-    return "matched weak phrase"
-
-
-def _trigger_tokens(description: str) -> set[str]:
-    words = re.findall(r"[a-z0-9][a-z0-9-]{2,}", description.lower())
-    return {word for word in words if word not in STOPWORDS}
 
 
 def _line_for(text: str, needle: str) -> int | None:

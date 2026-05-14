@@ -34,3 +34,9 @@ skills-doctor = "skills_doctor.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["skills_doctor*"]
+
+[tool.setuptools.package-data]
+skills_doctor = [
+  "resources/skills-doctor/SKILL.md",
+  "resources/skills-doctor/references/*.md",
+]

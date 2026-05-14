@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from .installer import install_skill
 from .report import render_result, write_output
 from .scanner import scan_paths
 
@@ -14,6 +15,12 @@ def main(argv: list[str] | None = None) -> int:
     if not hasattr(args, "command"):
         parser.print_help()
         return 2
+
+    if args.command == "install-skill":
+        results = install_skill(args.target, force=args.force, dry_run=args.dry_run)
+        for result in results:
+            print(f"{result.target}: {result.status} {result.path}")
+        return 0
 
     result = scan_paths(args.paths, max_depth=args.max_depth)
     output_format = args.format
@@ -43,6 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_scan_command(subparsers, "review", default_format="markdown")
     _add_scan_command(subparsers, "check", default_format="html", default_output="skills-doctor-report.html")
     _add_scan_command(subparsers, "report", default_format="html", default_output="skills-doctor-report.html")
+    _add_install_command(subparsers)
 
     return parser
 
@@ -76,6 +84,26 @@ def _add_scan_command(
         "--fail-on",
         choices=("P1", "P2", "P3"),
         help="Exit with code 1 when findings at or above the priority are present.",
+    )
+
+
+def _add_install_command(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    command = subparsers.add_parser("install-skill")
+    command.add_argument(
+        "--target",
+        choices=("claude", "codex", "cursor", "all"),
+        default="all",
+        help="Agent skill directory to install into.",
+    )
+    command.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing skills-doctor SKILL.md.",
+    )
+    command.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print target paths without writing files.",
     )
 
 

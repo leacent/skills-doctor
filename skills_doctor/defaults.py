@@ -16,66 +16,6 @@ DEFAULT_ROOTS = (
 RESOURCE_DIRS = ("references", "scripts", "assets")
 
 
-STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "as",
-    "at",
-    "be",
-    "by",
-    "for",
-    "from",
-    "in",
-    "into",
-    "is",
-    "it",
-    "of",
-    "on",
-    "or",
-    "that",
-    "the",
-    "this",
-    "to",
-    "use",
-    "when",
-    "with",
-    "you",
-    "user",
-    "users",
-    "skill",
-    "skills",
-    "agent",
-    "agents",
-}
-
-
-WEAK_DESCRIPTION_PHRASES = (
-    "helps with",
-    "best practices",
-    "general guidance",
-    "various tasks",
-    "anything",
-    "all tasks",
-    "any task",
-    "useful for",
-    "common tasks",
-)
-
-
-OVERBROAD_PHRASES = (
-    "always use",
-    "use for any",
-    "use for all",
-    "every request",
-    "all coding tasks",
-    "all design tasks",
-    "all tasks",
-    "anything related",
-)
-
-
 DANGEROUS_PATTERNS = (
     "rm -rf",
     "sudo rm",
@@ -99,4 +39,3 @@ SECRET_PATTERNS = (
     "bearer ",
     "sk-",
 )
-

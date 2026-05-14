@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from skills_doctor.cli import main
+from skills_doctor.installer import _packaged_skill_root, _read_packaged_skill, install_skill
 from skills_doctor.report import render_html, render_json
 from skills_doctor.scanner import scan_paths
 
@@ -35,7 +36,7 @@ TODO: explain this skill.
             titles = {finding.title for finding in result.findings}
             self.assertIn("Skill name is not portable", titles)
             self.assertIn("Description is too short", titles)
-            self.assertIn("Description uses weak trigger language", titles)
+            self.assertNotIn("Description uses weak trigger language", titles)
 
     def test_html_report_redacts_sensitive_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -174,6 +175,78 @@ description: Use when generating a sample local skills inspection report for CLI
             self.assertEqual(code, 0)
             self.assertTrue(output.exists())
             self.assertIn("Skills Doctor Report", output.read_text(encoding="utf-8"))
+
+    def test_install_skill_writes_selected_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            results = install_skill("claude", home=home)
+            skill_path = home / ".claude" / "skills" / "skills-doctor" / "SKILL.md"
+
+            self.assertEqual(results[0].status, "installed")
+            self.assertTrue(skill_path.exists())
+            self.assertIn("name: skills-doctor", skill_path.read_text(encoding="utf-8"))
+            self.assertTrue((home / ".claude" / "skills" / "skills-doctor" / "references" / "review-checklist.md").exists())
+
+    def test_packaged_skill_matches_source_skill(self) -> None:
+        source_root = Path(__file__).resolve().parents[1] / "skill"
+        packaged_root = _packaged_skill_root()
+
+        self.assertEqual(_read_packaged_skill(), (source_root / "SKILL.md").read_text(encoding="utf-8"))
+        for source_path in sorted(source_root.rglob("*")):
+            if not source_path.is_file():
+                continue
+            relative_path = source_path.relative_to(source_root)
+            self.assertEqual(
+                packaged_root.joinpath(*relative_path.parts).read_text(encoding="utf-8"),
+                source_path.read_text(encoding="utf-8"),
+            )
+
+    def test_install_skill_skips_existing_without_force(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            skill_path = home / ".codex" / "skills" / "skills-doctor" / "SKILL.md"
+            skill_path.parent.mkdir(parents=True)
+            skill_path.write_text("custom", encoding="utf-8")
+
+            results = install_skill("codex", home=home)
+
+            self.assertEqual(results[0].status, "skipped")
+            self.assertEqual(skill_path.read_text(encoding="utf-8"), "custom")
+
+    def test_install_skill_force_overwrites_existing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            skill_path = home / ".cursor" / "skills" / "skills-doctor" / "SKILL.md"
+            skill_path.parent.mkdir(parents=True)
+            skill_path.write_text("custom", encoding="utf-8")
+
+            results = install_skill("cursor", force=True, home=home)
+
+            self.assertEqual(results[0].status, "installed")
+            self.assertIn("name: skills-doctor", skill_path.read_text(encoding="utf-8"))
+
+    def test_install_skill_handles_existing_directory_without_skill_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            skill_dir = home / ".codex" / "skills" / "skills-doctor"
+            skill_dir.mkdir(parents=True)
+
+            results = install_skill("codex", home=home)
+
+            self.assertEqual(results[0].status, "installed")
+            self.assertTrue((skill_dir / "SKILL.md").exists())
+            self.assertTrue((skill_dir / "references" / "anti-patterns.md").exists())
+
+    def test_install_skill_all_targets_dry_run_does_not_write(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            results = install_skill("all", dry_run=True, home=home)
+
+            self.assertEqual({result.target for result in results}, {"claude", "codex", "cursor"})
+            self.assertTrue(all(result.status == "would-install" for result in results))
+            self.assertFalse((home / ".claude").exists())
 
 
 if __name__ == "__main__":
