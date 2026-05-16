@@ -2,6 +2,11 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+> 给本地 AI Agent Skills 做体检并生成报告。
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Agent Skill](https://img.shields.io/badge/Agent-Skill-purple.svg)](SKILL.md)
+
 `skills-doctor` 是一个用于审计本地 AI Agent skills 的 Agent Skill。它指导 AI Agent 以只读方式检查本地 skill 目录、触发质量、上下文成本、渐进式披露、安全风险和可维护性问题。
 
 它刻意保持为纯 skill：没有 Python 包、没有后台服务，也不会自动修改文件。
@@ -18,6 +23,12 @@ npx skills add leacent/skills-doctor -g
 
 ```text
 Use skills-doctor to audit my local agent skills.
+```
+
+或者要求生成可视化报告：
+
+```text
+Use skills-doctor to audit my local agent skills and generate an HTML report.
 ```
 
 `-g` 表示全局安装，让兼容的 Agent 可以在多个项目中使用这个 skill。
@@ -41,6 +52,7 @@ skills-doctor/
 ├── SKILL.md
 ├── references/
 │   ├── anti-patterns.md
+│   ├── html-report-template.md
 │   ├── report-template.md
 │   └── review-checklist.md
 ├── README.md
@@ -53,6 +65,14 @@ skills-doctor/
 `skills-doctor` 默认只读。它会要求 Agent 不编辑、删除、移动、安装、卸载、覆盖或 patch 被检查的用户 skills。它只应检查文件、总结风险并建议下一步修改。
 
 如果用户要求 Agent 应用修复，那是单独任务，并且应先获得用户明确确认。
+
+## 产品定位
+
+可以把 `skills-doctor` 理解为本地 Agent Skills 的体检工具：
+
+- `ESLint for AI Agent Skills`：在 skills 影响 Agent 行为前，帮助发现高风险模式。
+- `A doctor for your skills folder`：把分散的本地 skills 变成可读的健康报告。
+- `A read-only audit skill`：指导 Agent 检查和解释问题，而不是静默修改用户文件。
 
 ## 审阅模型
 
@@ -81,6 +101,7 @@ Token 数量只是用于相对风险排序的粗略估算，不是计费用量�
 - `references/review-checklist.md`：完整审计标准。
 - `references/anti-patterns.md`：常见 skill 设计问题和更好的写法。
 - `references/report-template.md`：最终回复使用的简洁报告格式。
+- `references/html-report-template.md`：用于生成 `skills-doctor-report.html` 的自包含可视化报告模板。
 
 ## 隐私
 

@@ -2,6 +2,11 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+> A health check and report generator for local AI Agent Skills.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Agent Skill](https://img.shields.io/badge/Agent-Skill-purple.svg)](SKILL.md)
+
 `skills-doctor` is an Agent Skill for auditing local AI agent skills. It guides an AI agent through a read-only review of local skill directories, trigger quality, context cost, progressive disclosure, safety risks, and maintainability issues.
 
 It is intentionally just a skill: no Python package, no background service, and no automatic file edits.
@@ -18,6 +23,12 @@ Then ask your agent:
 
 ```text
 Use skills-doctor to audit my local agent skills.
+```
+
+Or ask for a visual report:
+
+```text
+Use skills-doctor to audit my local agent skills and generate an HTML report.
 ```
 
 The `-g` flag installs globally so compatible agents can use the skill across projects.
@@ -41,6 +52,7 @@ skills-doctor/
 ├── SKILL.md
 ├── references/
 │   ├── anti-patterns.md
+│   ├── html-report-template.md
 │   ├── report-template.md
 │   └── review-checklist.md
 ├── README.md
@@ -53,6 +65,14 @@ skills-doctor/
 `skills-doctor` is read-only by default. It tells the agent not to edit, delete, move, install, uninstall, overwrite, or patch inspected user skills. It should only inspect files, summarize risks, and suggest next edits.
 
 If the user asks the agent to apply fixes, that is a separate task and should require explicit confirmation.
+
+## Positioning
+
+Think of `skills-doctor` as a local health check for agent skills:
+
+- `ESLint for AI Agent Skills`: it helps find risky patterns before they shape agent behavior.
+- `A doctor for your skills folder`: it turns scattered local skills into a readable health report.
+- `A read-only audit skill`: it guides agents to inspect and explain, not silently mutate user files.
 
 ## Review Model
 
@@ -81,6 +101,7 @@ It should not search the entire home directory.
 - `references/review-checklist.md`: the full audit rubric.
 - `references/anti-patterns.md`: examples of common skill design problems and better alternatives.
 - `references/report-template.md`: a compact report format for the final response.
+- `references/html-report-template.md`: a self-contained visual report template for `skills-doctor-report.html`.
 
 ## Privacy
 

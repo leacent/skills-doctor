@@ -1,6 +1,6 @@
 # Skills Doctor Report Template
 
-Use this template when producing a local skills review.
+Use this template when producing a concise chat or Markdown local skills review. Use `references/html-report-template.md` instead when the user asks for an HTML, visual, shareable, or archiveable report.
 
 ```markdown
 ## Skills Doctor Report

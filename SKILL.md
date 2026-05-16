@@ -33,9 +33,10 @@ If the user asks to apply fixes, stop this review workflow and ask for explicit 
 1. Apply the review references:
    - Read `references/review-checklist.md` for the full audit rubric.
    - Read `references/anti-patterns.md` when explaining or rewriting a problematic skill.
-   - Read `references/report-template.md` before producing the final report.
+   - Read `references/report-template.md` before producing a concise chat or Markdown report.
+   - Read `references/html-report-template.md` when the user asks for an HTML, visual, shareable, or archiveable report.
 
-1. Summarize the highest-risk findings to the user with exact paths, evidence, impact, and concrete next edits.
+1. Summarize the highest-risk findings to the user with exact paths, evidence, impact, and concrete next edits. If generating HTML, write `skills-doctor-report.html` unless the user requests another path.
 
 ## Known Skill Roots
 
@@ -63,10 +64,12 @@ Use `references/review-checklist.md` as the source of truth for qualitative judg
 
 ## Output
 
-Deliver a short report:
+Deliver either a concise chat/Markdown report or a local HTML report:
 
 - scanned roots and skill count
 - P1/P2/P3 finding count
 - top risks grouped by Index, Load, and Runtime
 - exact paths and evidence for each high-risk issue
 - what the user should inspect or change next
+
+For HTML reports, use `references/html-report-template.md`, keep the file self-contained, and tell the user the generated path.
