@@ -9,35 +9,37 @@ description: Use only for doctor, skills doctor, skills check, audit skills, sca
 
 Use this skill to help the current AI agent inspect local AI agent skills and generate a best-practice HTML report.
 
-Do not modify user skill files. Do not apply patches. Do not install or remove skills. Follow-up fixes are user decisions after reading the report.
+This skill is read-only for inspected user skills. Do not edit, delete, move, install, uninstall, overwrite, or patch any user skill files, including `SKILL.md`, `references/`, `scripts/`, `assets/`, or agent configuration files. Only generate reports, summaries, and suggested next edits.
+
+If the user asks to apply fixes, stop using this review workflow and ask for explicit confirmation before making any file changes outside generated report output. The `install-skill` command may install or update only the bundled `skills-doctor` skill itself.
 
 ## Workflow
 
 1. Confirm the target directories.
    - If the user provides paths, scan those paths.
-   - If not, scan only existing common roots such as `.codex/skills`, `.claude/skills`, `~/.codex/skills`, and `~/.claude/skills`.
+   - If not, scan only existing common roots such as `.codex/skills`, `.claude/skills`, `.cursor/skills`, `~/.codex/skills`, `~/.claude/skills`, and `~/.cursor/skills`.
    - Do not search the entire home directory.
 
-2. Run the deterministic scanner before deep reading any skill bodies:
+1. Run the deterministic scanner before deep reading any skill bodies:
 
 ```bash
-skills-doctor report --output skills-doctor-report.html
+skills-doctor check
 ```
 
-3. For explicit paths:
+1. For explicit paths:
 
 ```bash
 skills-doctor report path/to/skills --output skills-doctor-report.html
 ```
 
-4. Treat scanner findings as leads, not final judgment. Read only the suspicious or representative `SKILL.md` files first, then inspect `references/`, `scripts/`, or `assets/` when a finding depends on them.
+1. Treat scanner findings as leads, not final judgment. Read only the suspicious or representative `SKILL.md` files first, then inspect `references/`, `scripts/`, or `assets/` when a finding depends on them.
 
-5. Apply the review references:
+1. Apply the review references:
    - Read `references/review-checklist.md` for the full audit rubric.
    - Read `references/anti-patterns.md` when rewriting or explaining a problematic skill.
    - Read `references/report-template.md` when producing a manual review instead of relying only on the generated HTML report.
 
-6. Summarize the highest-risk findings to the user with exact paths, evidence, impact, and concrete next edits.
+1. Summarize the highest-risk findings to the user with exact paths, evidence, impact, and concrete next edits.
 
 ## Loading Model
 

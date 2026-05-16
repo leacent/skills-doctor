@@ -6,10 +6,10 @@ from pathlib import Path
 DEFAULT_ROOTS = (
     Path(".codex/skills"),
     Path(".claude/skills"),
-    Path(".cursor/rules"),
+    Path(".cursor/skills"),
     Path.home() / ".codex" / "skills",
     Path.home() / ".claude" / "skills",
-    Path.home() / ".cursor" / "rules",
+    Path.home() / ".cursor" / "skills",
 )
 
 

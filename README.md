@@ -6,16 +6,16 @@ The scanner does not modify inspected skills, apply patches, or upload local con
 
 ## What It Checks
 
-- Skill discovery across common local roots such as `.codex/skills`, `.claude/skills`, `~/.codex/skills`, and `~/.claude/skills`.
+- Skill discovery across common local roots such as `.codex/skills`, `.claude/skills`, `.cursor/skills`, `~/.codex/skills`, `~/.claude/skills`, and `~/.cursor/skills`.
 - `SKILL.md` structure and frontmatter quality.
-- Trigger description precision and over-broad descriptions through the installed review checklist.
+- Weak, over-broad, or potentially conflicting trigger descriptions.
 - Estimated token cost hotspots across Index, Load, and Runtime layers.
 - Progressive disclosure issues.
 - Long descriptions, large resources, and high runtime context risk.
 - Dangerous command patterns and sensitive values.
 - Hardcoded local paths.
 - Empty resource directories.
-- Potential trigger conflicts between skills through agent review of scanner inventory.
+- Agent Review Pack output for qualitative model review after deterministic scanning.
 
 ## Install
 
@@ -60,7 +60,7 @@ python3 -m pip install -e .
 Generate an HTML report for the default local roots:
 
 ```bash
-skills-doctor report --output skills-doctor-report.html
+skills-doctor check
 ```
 
 Scan explicit skill roots:
@@ -84,11 +84,14 @@ skills-doctor scan ~/.codex/skills --format markdown
 ## CLI
 
 ```bash
+skills-doctor check [paths...] --output skills-doctor-report.html
 skills-doctor scan [paths...] --format json|markdown|html
 skills-doctor report [paths...] --output skills-doctor-report.html
 skills-doctor review [paths...] --format markdown|json|html
 skills-doctor install-skill --target claude|codex|cursor|all
 ```
+
+`review` generates an Agent Review Pack with read-only safety rules, scan summary, high-risk files to inspect, and deterministic findings for qualitative model review.
 
 When no path is provided, `skills-doctor` scans existing common roots only. It does not search the whole home directory.
 
@@ -122,7 +125,7 @@ python3 -m unittest
 Run the package directly:
 
 ```bash
-python3 -m skills_doctor report tests/fixtures --output /tmp/skills-doctor-report.html
+python3 -m skills_doctor report skill --output /tmp/skills-doctor-report.html
 ```
 
 ## Privacy

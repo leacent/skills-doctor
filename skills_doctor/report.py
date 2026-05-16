@@ -22,6 +22,107 @@ def render_json(result: ScanResult) -> str:
     return json.dumps(asdict(result), ensure_ascii=False, indent=2)
 
 
+def render_review_pack(result: ScanResult, output_format: str) -> str:
+    if output_format == "json":
+        payload = {
+            "scan": asdict(result),
+            "agent_review": _review_pack_data(result),
+        }
+        return json.dumps(payload, ensure_ascii=False, indent=2)
+    if output_format == "markdown":
+        return render_review_markdown(result)
+    if output_format == "html":
+        return render_review_html(result)
+    raise ValueError(f"unsupported format: {output_format}")
+
+
+def render_review_markdown(result: ScanResult) -> str:
+    lines = [
+        "# Skills Doctor Agent Review Pack",
+        "",
+        "Use this pack to guide an AI agent's qualitative review after deterministic scanning.",
+        "",
+        "## Safety Boundary",
+        "",
+        "- Treat this review as read-only.",
+        "- Do not edit, delete, move, install, uninstall, overwrite, or patch user skill files.",
+        "- Only inspect files, summarize findings, and propose concrete next edits for the user to approve separately.",
+        "",
+        "## Scan Summary",
+        "",
+        f"- Generated: `{result.generated_at}`",
+        f"- Roots: `{result.summary.get('roots', 0)}`",
+        f"- Skills: `{result.summary.get('skills', 0)}`",
+        f"- Findings: `{result.summary.get('findings', 0)}`",
+        f"- P1/P2/P3: `{result.summary.get('p1', 0)}` / `{result.summary.get('p2', 0)}` / `{result.summary.get('p3', 0)}`",
+        f"- Estimated Index / Load / Runtime tokens: `{result.summary.get('estimated_index_tokens', 0)}` / `{result.summary.get('estimated_load_tokens', 0)}` / `{result.summary.get('estimated_runtime_tokens', 0)}`",
+        "",
+        "## Review Procedure",
+        "",
+        "1. Start with P1 findings, then P2 trigger and conflict findings.",
+        "2. Read only the suspicious or representative `SKILL.md` files first.",
+        "3. Inspect `references/`, `scripts/`, or `assets/` only when a finding depends on them.",
+        "4. Confirm whether each scanner signal is a real issue or an acceptable trade-off.",
+        "5. Return exact paths, evidence, impact, and suggested next edits. Do not apply changes.",
+        "",
+        "## High-Risk Files To Inspect",
+        "",
+    ]
+    review_data = _review_pack_data(result)
+    if review_data["files_to_inspect"]:
+        for item in review_data["files_to_inspect"]:
+            lines.append(f"- `{item}`")
+    else:
+        lines.append("- No high-risk files detected.")
+
+    lines.extend([
+        "",
+        "## Deterministic Findings",
+        "",
+    ])
+    if not result.findings:
+        lines.append("No findings detected.")
+    for index, finding in enumerate(result.findings, start=1):
+        location = finding.path if finding.line is None else f"{finding.path}:{finding.line}"
+        lines.extend([
+            f"{index}. **[{finding.priority}] {finding.title}**",
+            f"   - Category: `{finding.category}`",
+            f"   - Layer: `{finding.layer}`",
+            f"   - Location: `{location}`",
+            f"   - Evidence: `{_redact_for_display(finding.evidence)}`",
+            f"   - Impact: {finding.impact}",
+            f"   - Suggested next edit: {finding.recommendation}",
+            "",
+        ])
+    return "\n".join(lines)
+
+
+def render_review_html(result: ScanResult) -> str:
+    review = f"""
+    <section class="section card">
+      <h2>Agent Review Pack</h2>
+      <p class="muted">Use this section to guide qualitative AI review after deterministic scanning.</p>
+      <h3>Safety Boundary</h3>
+      <ul>
+        <li>Treat this review as read-only.</li>
+        <li>Do not edit, delete, move, install, uninstall, overwrite, or patch user skill files.</li>
+        <li>Only inspect files, summarize findings, and propose concrete next edits for separate user approval.</li>
+      </ul>
+      <h3>Review Procedure</h3>
+      <ol>
+        <li>Start with P1 findings, then P2 trigger and conflict findings.</li>
+        <li>Read only suspicious or representative SKILL.md files first.</li>
+        <li>Inspect references, scripts, or assets only when a finding depends on them.</li>
+        <li>Confirm whether each scanner signal is a real issue or an acceptable trade-off.</li>
+        <li>Return exact paths, evidence, impact, and suggested next edits. Do not apply changes.</li>
+      </ol>
+      <h3>High-Risk Files To Inspect</h3>
+      {_review_files_html(_review_pack_data(result)["files_to_inspect"])}
+    </section>
+"""
+    return render_html(result).replace("  <footer>", f"{review}\n  <footer>")
+
+
 def render_markdown(result: ScanResult) -> str:
     lines = [
         "# Skills Doctor Report",
@@ -383,3 +484,33 @@ def _redact_for_display(value: str) -> str:
         if marker.lower() in redacted.lower():
             return "[redacted sensitive evidence]"
     return redacted
+
+
+def _review_pack_data(result: ScanResult) -> dict[str, object]:
+    files: list[str] = []
+    seen: set[str] = set()
+    for finding in result.findings:
+        if finding.priority not in {"P1", "P2"}:
+            continue
+        if finding.category not in {"safety", "trigger", "trigger-conflict", "structure", "token-cost"}:
+            continue
+        if finding.path in seen:
+            continue
+        seen.add(finding.path)
+        files.append(finding.path)
+    return {
+        "mode": "read-only",
+        "instructions": [
+            "Do not edit, delete, move, install, uninstall, overwrite, or patch user skill files.",
+            "Read only suspicious or representative files needed to confirm scanner findings.",
+            "Return exact paths, evidence, impact, and suggested next edits for user approval.",
+        ],
+        "files_to_inspect": files[:20],
+    }
+
+
+def _review_files_html(files: list[str]) -> str:
+    if not files:
+        return '<p class="muted">No high-risk files detected.</p>'
+    items = "".join(f"<li><code>{escape(path)}</code></li>" for path in files)
+    return f"<ul>{items}</ul>"

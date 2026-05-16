@@ -10,4 +10,7 @@ dist/
 build/
 *.html
 !docs/**/*.html
+skill/SKILL.zh-CN.md
+skills-doctor-product.md
+SECURITY.md
 

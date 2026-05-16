@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from itertools import combinations
 from pathlib import Path
 
 from .defaults import (
@@ -10,11 +11,55 @@ from .defaults import (
 from .models import Finding, ScanResult, SkillRecord
 
 
+WEAK_TRIGGER_PHRASES = (
+    "helps with",
+    "help with",
+    "useful for",
+    "best practices",
+    "common tasks",
+    "various tasks",
+)
+
+UNIVERSAL_TRIGGER_PHRASES = (
+    "anything",
+    "any task",
+    "all tasks",
+    "every request",
+    "always use",
+    "use for any",
+    "all coding tasks",
+)
+
+TRIGGER_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "for",
+    "in",
+    "into",
+    "local",
+    "of",
+    "on",
+    "or",
+    "the",
+    "this",
+    "to",
+    "use",
+    "when",
+    "with",
+}
+
+
 def analyze_scan(result: ScanResult) -> ScanResult:
     all_findings: list[Finding] = []
     for skill in result.skills:
         skill.findings.extend(_analyze_skill(skill))
         all_findings.extend(skill.findings)
+
+    conflict_findings = _analyze_trigger_conflicts(result.skills)
+    for skill, findings in conflict_findings:
+        skill.findings.extend(findings)
+        all_findings.extend(findings)
 
     result.findings = sorted(all_findings, key=lambda finding: finding.sort_key())
     result.summary = _build_summary(result)
@@ -99,6 +144,32 @@ def _analyze_skill(skill: SkillRecord) -> list[Finding]:
                 "Short descriptions usually lack enough trigger boundaries.",
                 "Include the task, trigger intent, artifact type, and non-use boundary.",
             ))
+        for phrase in WEAK_TRIGGER_PHRASES:
+            if phrase in desc_lower:
+                findings.append(_finding(
+                    "P2",
+                    "trigger",
+                    "index",
+                    "Description uses weak trigger language",
+                    skill.skill_md_path,
+                    f"description contains {phrase!r}.",
+                    "Weak trigger wording makes it harder for agents to know when this skill should win over nearby skills.",
+                    "Replace vague wording with concrete user intent, artifact type, domain, and non-use boundaries.",
+                ))
+                break
+        for phrase in UNIVERSAL_TRIGGER_PHRASES:
+            if phrase in desc_lower:
+                findings.append(_finding(
+                    "P2",
+                    "trigger",
+                    "index",
+                    "Description is over-broad",
+                    skill.skill_md_path,
+                    f"description contains {phrase!r}.",
+                    "Over-broad trigger wording can cause the skill to activate for unrelated user requests.",
+                    "Narrow the description to specific tasks and add a clear non-use boundary.",
+                ))
+                break
     if skill.words > 5000:
         findings.append(_finding(
             "P1",
@@ -259,6 +330,63 @@ def _analyze_skill(skill: SkillRecord) -> list[Finding]:
         ))
 
     return findings
+
+
+def _analyze_trigger_conflicts(skills: list[SkillRecord]) -> list[tuple[SkillRecord, list[Finding]]]:
+    conflicts: dict[int, tuple[SkillRecord, list[Finding]]] = {}
+    for left, right in combinations(skills, 2):
+        if not left.description or not right.description:
+            continue
+        reason = _trigger_conflict_reason(left, right)
+        if not reason:
+            continue
+        left_entry = conflicts.setdefault(id(left), (left, []))
+        right_entry = conflicts.setdefault(id(right), (right, []))
+        left_entry[1].append(_trigger_conflict_finding(left, right, reason))
+        right_entry[1].append(_trigger_conflict_finding(right, left, reason))
+    return list(conflicts.values())
+
+
+def _trigger_conflict_reason(left: SkillRecord, right: SkillRecord) -> str:
+    left_desc = left.description.strip().lower()
+    right_desc = right.description.strip().lower()
+    if left_desc == right_desc:
+        return "descriptions are identical"
+    if len(left_desc) >= 60 and left_desc in right_desc:
+        return f"{left.display_name!r} description is contained in {right.display_name!r}"
+    if len(right_desc) >= 60 and right_desc in left_desc:
+        return f"{right.display_name!r} description is contained in {left.display_name!r}"
+
+    left_tokens = _trigger_tokens(left.description)
+    right_tokens = _trigger_tokens(right.description)
+    if len(left_tokens) < 5 or len(right_tokens) < 5:
+        return ""
+    shared = left_tokens & right_tokens
+    similarity = len(shared) / max(len(left_tokens), len(right_tokens))
+    if len(shared) >= 6 and similarity >= 0.55:
+        return f"descriptions share {len(shared)} trigger terms: {', '.join(sorted(shared)[:8])}"
+    return ""
+
+
+def _trigger_tokens(description: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9][a-z0-9-]{2,}", description.lower())
+        if token not in TRIGGER_STOPWORDS
+    }
+
+
+def _trigger_conflict_finding(skill: SkillRecord, other: SkillRecord, reason: str) -> Finding:
+    return _finding(
+        "P2",
+        "trigger-conflict",
+        "index",
+        "Potential trigger conflict",
+        skill.skill_md_path,
+        f"{reason}; overlaps with {other.display_name} at {other.skill_md_path}.",
+        "Two skills may compete for the same user request without a clear boundary.",
+        "Add negative boundaries, narrow one description, or merge overlapping skills if they serve the same intent.",
+    )
 
 
 def _build_summary(result: ScanResult) -> dict[str, int]:

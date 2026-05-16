@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from .installer import install_skill
-from .report import render_result, write_output
+from .report import render_result, render_review_pack, write_output
 from .scanner import scan_paths
 
 
@@ -24,7 +24,10 @@ def main(argv: list[str] | None = None) -> int:
 
     result = scan_paths(args.paths, max_depth=args.max_depth)
     output_format = args.format
-    content = render_result(result, output_format)
+    if args.command == "review":
+        content = render_review_pack(result, output_format)
+    else:
+        content = render_result(result, output_format)
     write_output(content, args.output)
 
     if args.output:

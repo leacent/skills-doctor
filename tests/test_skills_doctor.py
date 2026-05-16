@@ -6,8 +6,9 @@ import unittest
 from pathlib import Path
 
 from skills_doctor.cli import main
+from skills_doctor.defaults import DEFAULT_ROOTS
 from skills_doctor.installer import _packaged_skill_root, _read_packaged_skill, install_skill
-from skills_doctor.report import render_html, render_json
+from skills_doctor.report import render_html, render_json, render_review_pack
 from skills_doctor.scanner import scan_paths
 
 
@@ -36,7 +37,7 @@ TODO: explain this skill.
             titles = {finding.title for finding in result.findings}
             self.assertIn("Skill name is not portable", titles)
             self.assertIn("Description is too short", titles)
-            self.assertNotIn("Description uses weak trigger language", titles)
+            self.assertIn("Description uses weak trigger language", titles)
 
     def test_html_report_redacts_sensitive_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -90,6 +91,71 @@ Do one thing.
             self.assertIn("estimated_load_tokens", payload["skills"][0])
             self.assertIn("estimated_runtime_tokens", payload["skills"][0])
             self.assertIn("estimated_total_tokens", payload["summary"])
+
+    def test_default_roots_include_cursor_skills_not_rules(self) -> None:
+        roots = {str(path) for path in DEFAULT_ROOTS}
+
+        self.assertIn(".cursor/skills", roots)
+        self.assertNotIn(".cursor/rules", roots)
+
+    def test_review_pack_includes_read_only_agent_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skills"
+            skill = root / "review-skill"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                """---
+name: review-skill
+description: helps with review tasks
+---
+
+# Review Skill
+""",
+                encoding="utf-8",
+            )
+
+            result = scan_paths([str(root)])
+            markdown = render_review_pack(result, "markdown")
+            payload = json.loads(render_review_pack(result, "json"))
+
+            self.assertIn("Agent Review Pack", markdown)
+            self.assertIn("Do not edit, delete, move, install, uninstall, overwrite, or patch user skill files.", markdown)
+            self.assertEqual(payload["agent_review"]["mode"], "read-only")
+            self.assertTrue(payload["agent_review"]["files_to_inspect"])
+
+    def test_detects_potential_trigger_conflicts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skills"
+            left = root / "frontend-design"
+            right = root / "web-ui-design"
+            left.mkdir(parents=True)
+            right.mkdir(parents=True)
+            description = "Use when the user asks to create polished frontend interface layouts, landing pages, dashboards, or web UI components."
+            (left / "SKILL.md").write_text(
+                f"""---
+name: frontend-design
+description: {description}
+---
+
+# Frontend Design
+""",
+                encoding="utf-8",
+            )
+            (right / "SKILL.md").write_text(
+                f"""---
+name: web-ui-design
+description: {description}
+---
+
+# Web UI Design
+""",
+                encoding="utf-8",
+            )
+
+            result = scan_paths([str(root)])
+            titles = {finding.title for finding in result.findings}
+
+            self.assertIn("Potential trigger conflict", titles)
 
     def test_layered_token_findings_and_html_sections(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -197,6 +263,8 @@ description: Use when generating a sample local skills inspection report for CLI
             if not source_path.is_file():
                 continue
             relative_path = source_path.relative_to(source_root)
+            if relative_path == Path("SKILL.zh-CN.md"):
+                continue
             self.assertEqual(
                 packaged_root.joinpath(*relative_path.parts).read_text(encoding="utf-8"),
                 source_path.read_text(encoding="utf-8"),

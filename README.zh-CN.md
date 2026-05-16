@@ -6,16 +6,16 @@
 
 ## 检查内容
 
-- 在常见本地根目录中发现技能，例如 `.codex/skills`、`.claude/skills`、`~/.codex/skills` 和 `~/.claude/skills`。
+- 在常见本地根目录中发现技能，例如 `.codex/skills`、`.claude/skills`、`.cursor/skills`、`~/.codex/skills`、`~/.claude/skills` 和 `~/.cursor/skills`。
 - 检查 `SKILL.md` 结构和 frontmatter 质量。
-- 通过安装后的审计清单检查触发描述的精确性和过宽描述。
+- 检查过弱、过宽或潜在冲突的触发描述。
 - 估算 Index、Load 和 Runtime 三层的 token 成本热点。
 - 检查渐进式披露问题。
 - 检查过长描述、大型资源和高运行时上下文风险。
 - 检查危险命令模式和敏感值。
 - 检查硬编码本地路径。
 - 检查空资源目录。
-- 通过 Agent 审阅扫描清单，检查技能之间潜在的触发冲突。
+- 输出 Agent 审阅包，方便大模型在确定性扫描后继续做定性复核。
 
 ## 安装
 
@@ -60,7 +60,7 @@ python3 -m pip install -e .
 为默认本地根目录生成 HTML 报告：
 
 ```bash
-skills-doctor report --output skills-doctor-report.html
+skills-doctor check
 ```
 
 扫描显式指定的技能根目录：
@@ -84,11 +84,14 @@ skills-doctor scan ~/.codex/skills --format markdown
 ## CLI
 
 ```bash
+skills-doctor check [paths...] --output skills-doctor-report.html
 skills-doctor scan [paths...] --format json|markdown|html
 skills-doctor report [paths...] --output skills-doctor-report.html
 skills-doctor review [paths...] --format markdown|json|html
 skills-doctor install-skill --target claude|codex|cursor|all
 ```
+
+`review` 会生成 Agent 审阅包，包含只读安全规则、扫描摘要、高风险待检查文件和确定性 finding，方便大模型继续做定性审阅。
 
 未提供路径时，`skills-doctor` 只会扫描已存在的常见根目录。它不会搜索整个主目录。
 
@@ -122,7 +125,7 @@ python3 -m unittest
 直接运行包：
 
 ```bash
-python3 -m skills_doctor report tests/fixtures --output /tmp/skills-doctor-report.html
+python3 -m skills_doctor report skill --output /tmp/skills-doctor-report.html
 ```
 
 ## 隐私
