@@ -1,136 +1,88 @@
 # skills-doctor
 
-`skills-doctor` 是一个用于检查本地 AI Agent 技能的工具和可安装 skill。它可以帮助 AI Agent 检查本地技能目录、识别质量和安全问题，并生成符合最佳实践的 HTML 报告。它支持 Python 3.9+。
+`skills-doctor` 是一个用于审计本地 AI Agent skills 的 Agent Skill。它指导 AI Agent 以只读方式检查本地 skill 目录、触发质量、上下文成本、渐进式披露、安全风险和可维护性问题。
 
-扫描器不会修改被检查的技能、应用补丁或上传本地内容。安装器只会把内置的 `skills-doctor` skill 及其审计参考资料复制到本地 Agent skills 目录。
-
-## 检查内容
-
-- 在常见本地根目录中发现技能，例如 `.codex/skills`、`.claude/skills`、`.cursor/skills`、`~/.codex/skills`、`~/.claude/skills` 和 `~/.cursor/skills`。
-- 检查 `SKILL.md` 结构和 frontmatter 质量。
-- 检查过弱、过宽或潜在冲突的触发描述。
-- 估算 Index、Load 和 Runtime 三层的 token 成本热点。
-- 检查渐进式披露问题。
-- 检查过长描述、大型资源和高运行时上下文风险。
-- 检查危险命令模式和敏感值。
-- 检查硬编码本地路径。
-- 检查空资源目录。
-- 输出 Agent 审阅包，方便大模型在确定性扫描后继续做定性复核。
+它刻意保持为纯 skill：没有 Python 包、没有后台服务，也不会自动修改文件。
 
 ## 安装
 
-使用 `pipx` 直接从 GitHub 安装 CLI，然后安装内置 skill：
+使用开放的 Agent Skills CLI 安装：
 
 ```bash
-pipx install "git+https://github.com/leacent/skills-doctor.git"
-skills-doctor install-skill --target all
+npx skills add leacent/skills-doctor -g
 ```
 
-也可以使用 `uv`：
+然后告诉你的 Agent：
 
-```bash
-uv tool install "git+https://github.com/leacent/skills-doctor.git"
-skills-doctor install-skill --target all
+```text
+Use skills-doctor to audit my local agent skills.
 ```
 
-这会把 `skills-doctor` 安装到：
+`-g` 表示全局安装，让兼容的 Agent 可以在多个项目中使用这个 skill。
 
-- `~/.claude/skills/skills-doctor/SKILL.md`
-- `~/.codex/skills/skills-doctor/SKILL.md`
-- `~/.cursor/skills/skills-doctor/SKILL.md`
+## 检查内容
 
-如果只想安装到某一个 Agent：
+- 在 Universal、项目级和主流 Agent 专属目录中发现 skills，包括 `.agents/skills`、`~/.agents/skills`、Claude Code、Codex、Cursor、OpenClaw、Cline、Gemini CLI、OpenCode、Warp、Augment、CodeBuddy 等已存在的已知 skill 目录。
+- 检查 `SKILL.md` 结构和 frontmatter 质量。
+- 检查过弱、过宽或潜在冲突的触发描述。
+- 用粗略相对估算理解 Index / Load / Runtime 上下文成本。
+- 检查渐进式披露问题，例如过早加载所有 references。
+- 检查过长的 `SKILL.md`、大型 references 和运行时上下文风险。
+- 检查危险命令模式和敏感示例值。
+- 检查硬编码本地路径和可移植性问题。
+- 检查空的或过期的资源目录。
 
-```bash
-skills-doctor install-skill --target claude
+## 仓库结构
+
+```text
+skills-doctor/
+├── SKILL.md
+├── references/
+│   ├── anti-patterns.md
+│   ├── report-template.md
+│   └── review-checklist.md
+├── README.md
+├── README.zh-CN.md
+└── LICENSE
 ```
 
-已有文件默认不会被覆盖，除非传入 `--force`。安装完成后，可以让 Agent 执行 `skills doctor`、`audit skills` 或 `scan skill directories`。
+## 审阅边界
 
-本地开发安装：
+`skills-doctor` 默认只读。它会要求 Agent 不编辑、删除、移动、安装、卸载、覆盖或 patch 被检查的用户 skills。它只应检查文件、总结风险并建议下一步修改。
 
-```bash
-git clone https://github.com/leacent/skills-doctor.git
-cd skills-doctor
-python3 -m pip install -e .
-```
+如果用户要求 Agent 应用修复，那是单独任务，并且应先获得用户明确确认。
 
-## 快速开始
+## 审阅模型
 
-为默认本地根目录生成 HTML 报告：
+这个 skill 使用三层模型：
 
-```bash
-skills-doctor check
-```
+- `Index`：`name + description`，skill 被选择前可见的触发表面。
+- `Load`：`SKILL.md`，skill 被选择后加载的正文。
+- `Runtime`：`references/`、`scripts/`、`assets/` 和按需加载的命令输出。
 
-扫描显式指定的技能根目录：
+Token 数量只是用于相对风险排序的粗略估算，不是计费用量。
 
-```bash
-skills-doctor report ~/.codex/skills ~/.claude/skills --output report.html
-```
+## 默认 Skill 目录
 
-为自动化流程输出 JSON：
+当用户没有提供路径时，`skills-doctor` 会要求 Agent 只检查已经存在的已知目录：
 
-```bash
-skills-doctor scan ~/.codex/skills --format json
-```
+- Universal：`.agents/skills`、`~/.agents/skills`。
+- 项目级：`.codex/skills`、`.claude/skills`、`.cursor/skills`。
+- 核心全局 Agent：`~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`。
+- 主流 Agent 专属目录：`~/.aider-desk/skills`、`~/.augment/skills`、`~/.bob/skills`、`~/.openclaw/skills`、`~/.codeartsdoer/skills`、`~/.codebuddy/skills`、`~/.codemaker/skills`。
+- 其他已知目录存在时也可检查：`~/.amp/skills`、`~/.antigravity/skills`、`~/.cline/skills`、`~/.dexto/skills`、`~/.firebender/skills`、`~/.gemini/skills`、`~/.github-copilot/skills`、`~/.kimi/skills`、`~/.opencode/skills`、`~/.warp/skills`。
 
-为终端查看输出 Markdown：
+不要搜索整个 home 目录。
 
-```bash
-skills-doctor scan ~/.codex/skills --format markdown
-```
+## 参考资料
 
-## CLI
-
-```bash
-skills-doctor check [paths...] --output skills-doctor-report.html
-skills-doctor scan [paths...] --format json|markdown|html
-skills-doctor report [paths...] --output skills-doctor-report.html
-skills-doctor review [paths...] --format markdown|json|html
-skills-doctor install-skill --target claude|codex|cursor|all
-```
-
-`review` 会生成 Agent 审阅包，包含只读安全规则、扫描摘要、高风险待检查文件和确定性 finding，方便大模型继续做定性审阅。
-
-未提供路径时，`skills-doctor` 只会扫描已存在的常见根目录。它不会搜索整个主目录。
-
-## 报告边界
-
-HTML 报告包含确定性扫描证据、影响、优先级、置信度和建议的下一步操作。安装后的 skill 会包含基于提示词的审计参考资料，用于定性判断。后续操作，例如重写描述、拆分参考资料、移动文件、禁用技能或合并重复项，均由用户自行决定。
-
-## Token 估算模型
-
-`skills-doctor` 报告的 token 成本是估算值，不是计费用量。默认估算器使用粗略的 `chars / 4` 启发式规则，用于相对风险排序。
-
-- `estimated_index_tokens`：技能名称和描述，表示始终可见的触发面。
-- `estimated_load_tokens`：`SKILL.md`，表示技能被选中后加载的内容。
-- `estimated_runtime_tokens`：参考资料、脚本和资源，表示可能按需加载的上下文成本。
-- `estimated_total_tokens`：以上三项估算值之和。
-
-HTML 报告会按 Index、Load 和 Runtime 三层对发现的问题分组，帮助用户了解上下文成本和触发风险来自哪里。
-
-## 技能形式
-
-可安装的技能包位于 [`skill/`](skill/)，并已随 Python 包一起内置，供 `install-skill` 使用。`SKILL.md` 保持简短工作流，`skill/references/` 保存基于提示词的审计清单、反模式和报告模板。它的触发条件有意保持狭窄：仅用于 `doctor`、`skills check`、`audit skills`、`scan skill directories` 和本地技能报告请求。不要将它用于创建、安装、查找或学习如何编写技能。
-
-## 开发
-
-运行测试：
-
-```bash
-python3 -m unittest
-```
-
-直接运行包：
-
-```bash
-python3 -m skills_doctor report skill --output /tmp/skills-doctor-report.html
-```
+- `references/review-checklist.md`：完整审计标准。
+- `references/anti-patterns.md`：常见 skill 设计问题和更好的写法。
+- `references/report-template.md`：最终回复使用的简洁报告格式。
 
 ## 隐私
 
-`skills-doctor` 是本地优先的工具。它只读取用户提供的目录或已知的本地技能根目录。报告会在展示前遮蔽常见 secret 模式。
+`skills-doctor` 本地优先。它要求 Agent 只检查用户提供的路径或已知本地 skill 根目录，避免无边界扫描 home 目录，并在报告中遮蔽敏感值。
 
 ## License
 

@@ -1,6 +1,6 @@
 # Skills Doctor Review Checklist
 
-Use this checklist after running the deterministic scanner. Treat scanner findings as leads, not proof. Read only the files needed to confirm or reject each lead.
+Use this checklist during a read-only review of local AI agent skills. Treat observations as leads, not proof. Read only the files needed to confirm or reject each lead.
 
 ## Priority Model
 
@@ -30,7 +30,7 @@ Use this checklist after running the deterministic scanner. Treat scanner findin
 - Keep `SKILL.md` lean and procedural. Around 3,000 words is a practical warning threshold; around 5,000 words is usually too large.
 - Move long examples, schemas, provider-specific variants, policies, and reference material into `references/`.
 - Do not duplicate the same instructions in `SKILL.md` and references.
-- Use the scanner's Index / Load / Runtime token estimates for relative ranking, not billing.
+- Estimate Index / Load / Runtime token cost roughly for relative risk ranking, not billing.
 - Large references or assets are acceptable only when the skill explains when to load them.
 
 ## Progressive Disclosure
@@ -53,7 +53,7 @@ Use this checklist after running the deterministic scanner. Treat scanner findin
 
 - Avoid hardcoded absolute local paths unless clearly marked as local examples.
 - Prefer relative paths, `$HOME`, or tool-specific documented locations.
-- Keep commands shell-portable where reasonable, and state required tools such as Python 3.
+- Keep commands shell-portable where reasonable, and state required tools only when the skill genuinely depends on them.
 - Avoid assuming one agent unless the skill is explicitly agent-specific.
 
 ## Behavioral Quality

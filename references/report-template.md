@@ -1,6 +1,6 @@
 # Skills Doctor Report Template
 
-Use this template when producing a manual review or summarizing the generated HTML report.
+Use this template when producing a local skills review.
 
 ```markdown
 ## Skills Doctor Report
@@ -12,7 +12,7 @@ Use this template when producing a manual review or summarizing the generated HT
 
 ### Findings
 1. [P1/P2/P3] Title
-   - Evidence: `path:line` or scanner metric
+   - Evidence: `path:line`, exact snippet, or file metric
    - Why it matters: concrete impact
    - Fix: specific rewrite, file move, deletion, or gating rule
 
@@ -20,14 +20,14 @@ Use this template when producing a manual review or summarizing the generated HT
 - Ordered list of concrete edits by impact.
 
 ### Validation
-- Commands run and what passed or failed.
-- Files inspected manually after the scanner output.
+- Files inspected.
+- Commands or searches run, if any.
 ```
 
 ## Writing Rules
 
 - Lead with findings, not background.
 - Include exact file paths and lines when available.
-- Separate scanner facts from agent judgment.
+- Separate observed facts from agent judgment.
 - Redact sensitive values in evidence.
 - Do not claim the inspected skills were modified unless the user explicitly asked for edits and they were actually applied.
