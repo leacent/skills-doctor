@@ -1,5 +1,7 @@
 # skills-doctor
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 `skills-doctor` 是一个用于审计本地 AI Agent skills 的 Agent Skill。它指导 AI Agent 以只读方式检查本地 skill 目录、触发质量、上下文成本、渐进式披露、安全风险和可维护性问题。
 
 它刻意保持为纯 skill：没有 Python 包、没有后台服务，也不会自动修改文件。

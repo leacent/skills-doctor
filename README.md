@@ -1,5 +1,7 @@
 # skills-doctor
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 `skills-doctor` is an Agent Skill for auditing local AI agent skills. It guides an AI agent through a read-only review of local skill directories, trigger quality, context cost, progressive disclosure, safety risks, and maintainability issues.
 
 It is intentionally just a skill: no Python package, no background service, and no automatic file edits.
